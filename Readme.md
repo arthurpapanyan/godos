@@ -7,7 +7,13 @@ This is a command-line tool written in Go for HTTP performance testing. It allow
 To install the tool, you need to have Go installed on your system. You can then install it using `go get`:
 
 ```bash
-go get github.com/arthurpapanyan/godos
+#Make sure that go bin directory included in your shell config
+
+export PATH="$HOME/go/bin:$PATH"
+```
+
+```bash
+go install github.com/arthurpapanyan/godos@latest
 ```
 
 
