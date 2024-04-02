@@ -9,28 +9,35 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
 
-type Config struct {
-	URL     string            `json:"url"`
-	Method  string            `json:"method"`
-	Headers map[string]string `json:"headers"`
-	Body    map[string]string `json:"body"`
-}
-
 var elapsedTimes []time.Duration
 var statusList []int
 
+type StringList []string
+
+func (s *StringList) String() string {
+	return fmt.Sprintf("%v", *s)
+}
+
+func (s *StringList) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
+
 func main() {
+	var reqHeaders StringList
+
 	concurrency := flag.Int("c", 1, "Concurrency level")
-	numRequests := flag.Int("n", 1, "Number of requests")
+	numRequests := flag.Int("n", 2, "Number of requests")
+	flag.Var(&reqHeaders, "H", "Add Request header(seperate flag for each header)")
 	targetURL := flag.String("t", "", "Target URL")
 	method := flag.String("m", "GET", "HTTP request method")
 	requestBody := flag.String("d", "", "Request body")
 	logFilePath := flag.String("logfile", "", "Log file path")
-	configFile := flag.String("config", "", "JSON config file path")
 	flag.Parse()
 
 	flag.Usage = func() {
@@ -38,20 +45,9 @@ func main() {
 		flag.PrintDefaults()
 	}
 
-	if *targetURL == "" || (*configFile == "" && *requestBody == "") {
+	if *targetURL == "" {
 		flag.Usage()
 		os.Exit(1)
-	}
-
-	if *configFile != "" {
-		config, err := parseConfig(*configFile)
-		if err != nil {
-			fmt.Printf("Error parsing config file: %v\n", err)
-			return
-		}
-		*targetURL = config.URL
-		*method = config.Method
-		flag.Set("d", fmt.Sprintf("%s", config.Body))
 	}
 
 	if *targetURL == "" {
@@ -68,7 +64,7 @@ func main() {
 			defer wg.Done()
 			for j := 0; j < *numRequests; j++ {
 				fmt.Printf(".")
-				makeRequest(*targetURL, *method, *requestBody, *logFilePath)
+				makeRequest(*targetURL, *method, *requestBody, reqHeaders, *logFilePath)
 			}
 		}()
 	}
@@ -89,7 +85,7 @@ func mapToStringifiedJSON(data map[string]interface{}) (string, error) {
 	return string(jsonBytes), nil
 }
 
-func makeRequest(url, method, body, logFilePath string) {
+func makeRequest(url string, method string, body string, headers StringList, logFilePath string) {
 	client := &http.Client{}
 	req_start := time.Now()
 
@@ -99,10 +95,11 @@ func makeRequest(url, method, body, logFilePath string) {
 		fmt.Printf("Error creating request: %v\n", err)
 		return
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
+	for k := 0; k < len(headers); k++ {
+		var headerData []string = strings.Split(headers[k], ":")
+		var k, v string = headerData[0], headerData[1]
+		req.Header.Set(k, v)
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error sending request: %v\n", err)
@@ -131,19 +128,6 @@ func makeRequest(url, method, body, logFilePath string) {
 	}
 }
 
-func parseConfig(filePath string) (Config, error) {
-	var config Config
-	file, err := os.ReadFile(filePath)
-	if err != nil {
-		return config, err
-	}
-	err = json.Unmarshal(file, &config)
-	if err != nil {
-		return config, err
-	}
-	return config, nil
-}
-
 func retreiveCallStats() {
 	sort.Slice(elapsedTimes, func(i, j int) bool {
 		return elapsedTimes[i] < elapsedTimes[j]
@@ -161,7 +145,7 @@ func retreiveCallStats() {
 	fmt.Println("Slowest Calls:")
 	fmt.Println("")
 
-	for j := len(elapsedTimes); j > len(elapsedTimes)-5; j-- {
+	for j := len(elapsedTimes); j > (len(elapsedTimes)-5) && j > 0; j-- {
 		fmt.Printf("%v\n", elapsedTimes[(len(elapsedTimes)-j)])
 	}
 	fmt.Printf("--------------\n")
