@@ -8,8 +8,8 @@ builds:
   - id: godos
     goos:
       - linux
-      - darwin
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -24,11 +24,11 @@ builds:
       - linux_amd64_v1
       - linux_arm64
       - linux_386
-      - darwin_amd64_v1
-      - darwin_arm64
       - windows_amd64_v1
       - windows_arm64
       - windows_386
+      - darwin_amd64_v1
+      - darwin_arm64
     dir: .
     main: .
     binary: godos
@@ -37,6 +37,8 @@ builds:
     command: build
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser
+    env:
+      - CGO_ENABLED=0
 archives:
   - id: default
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
