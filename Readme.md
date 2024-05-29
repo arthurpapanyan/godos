@@ -19,7 +19,7 @@ go install github.com/arthurpapanyan/godos@latest
 
 ### Usage
 ```
-Usage: ./godos [OPTIONS]
+Usage: godos [OPTIONS]
 
 Options:
   -c int
@@ -36,3 +36,15 @@ Options:
         Number of requests (default 1)
   -t string
         Target URL
+```
+
+### Examples
+
+```sh
+#Sending 10 GET request with 2 parallel group. Total 20 requests
+godos -t https://example.com -m GET -n 10 -c 2 
+
+# Sending 5 POST request with
+godos -c 1 -n 5 -d '{"email":"example@gmail.com","password":"Qwer1234!"}' -t http://example.com -m POST
+
+```
