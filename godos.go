@@ -107,6 +107,7 @@ func makeRequest(url string, method string, body string, headers StringList, log
 	}
 	req_elapsed := time.Since(req_start)
 	elapsedTimes = append(elapsedTimes, req_elapsed)
+	statusList = append(statusList, resp.StatusCode)
 
 	defer resp.Body.Close()
 
@@ -124,7 +125,6 @@ func makeRequest(url string, method string, body string, headers StringList, log
 		defer logFile.Close()
 
 		log.SetOutput(logFile)
-		statusList = append(statusList, resp.StatusCode)
 	}
 }
 
